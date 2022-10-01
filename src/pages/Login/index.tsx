@@ -1,11 +1,30 @@
-import React, { useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import authService from "../../api/services/authService";
 import { AppRoutes } from "../../routes";
 import { TloginData } from "../../Types";
+import { storage } from "../../utils/storageUtils";
 
 const Login = () => {
   const navigate = useNavigate();
+
+  // Access the client
+  const queryClient = useQueryClient();
+
+  const loginQuery = useMutation(
+    (data: TloginData) => {
+      return authService.login(data);
+    },
+    {
+      onSuccess: (data) => {
+        const userData = { ...data?.data.user, token: data?.data?.token };
+        storage.setItem("user", userData);
+        navigate(AppRoutes.HOME);
+        queryClient.invalidateQueries();
+      },
+    }
+  );
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -14,14 +33,8 @@ const Login = () => {
       email: formData.get("email"),
       password: formData.get("password"),
     };
-    authService.login(data);
+    loginQuery.mutate(data);
   };
-
-  //   useEffect(() => {
-  // const user:
-
-  //     if (user) navigate(AppRoutes.HOME);
-  //   }, [navigate, user]);
 
   return (
     <div>
@@ -50,7 +63,7 @@ const Login = () => {
         </label>
         <br />
         <button type="submit">
-          {/* {loading === "pending" ? "Loading..." : "Login"} */}
+          {loginQuery.isLoading ? "Loading..." : "Login"}
         </button>
       </form>
     </div>
